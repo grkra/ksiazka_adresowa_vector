@@ -6,6 +6,12 @@
 
 using namespace std;
 
+struct Uzytkownik {
+    int idUzytkownika;
+    string loginUzytkownika;
+    string hasloUzytkownika;
+};
+
 struct Znajomy {
     int id;
     string imie;
@@ -31,51 +37,94 @@ void edytujZnajomego (vector <Znajomy>& znajomi);
 void wypiszNaEkranBrakKontaktow ();
 void wrocDoMenuGlownego ();
 void wypiszMenuZmianyDanych ();
+void odczytajUzytkownikowZPliku (vector <Uzytkownik>& uzytkownicy);
+int zalogujUzytkownika (vector <Uzytkownik>& uzytkownicy);
+void zapiszUzytkownikaDoPliku (Uzytkownik uzytkownikDoZapisania);
+void zarejestrujUzytkownika (vector <Uzytkownik>& uzytkownicy);
+void zmienHaslo (vector <Uzytkownik>& uzytkownicy, int idZalogowanegoUzytkownika);
+void zaktualizujUzytkownikowWPliku (vector <Uzytkownik>& uzytkownicy);
+
+
 
 int main() {
+    vector <Uzytkownik> uzytkownicy;
     vector <Znajomy> znajomi;
     int wybranaOpcjaWMenuGlownym = 0;
+    int idZalogowanegoUzytkownika = 0;
 
+
+    odczytajUzytkownikowZPliku (uzytkownicy);
     odczytajZnajomychZPliku (znajomi);
 
+
     while (1) {
-        system ("cls");
+        if (idZalogowanegoUzytkownika == 0) {
+            system ("cls");
+            cout << "1. Logowanie" << endl;
+            cout << "2. Rejestracja" << endl;
+            cout << "3. Zamknij program" << endl;
 
-        cout << "1. Dodaj adresata" << endl;
-        cout << "2. Wyszukaj po imieniu" << endl;
-        cout << "3. Wyszukaj po nazwisku" << endl;
-        cout << "4. Wyswietl wszystkich adresatow" << endl;
-        cout << "5. Usun adresata" << endl;
-        cout << "6. Edytuj adresata" << endl;
-        cout << "9. Zakoncz program" << endl;
+            wybranaOpcjaWMenuGlownym = wczytajLiczbe ();
+            switch (wybranaOpcjaWMenuGlownym) {
+            case 1:
+                idZalogowanegoUzytkownika = zalogujUzytkownika (uzytkownicy);
+                break;
+            case 2:
+                zarejestrujUzytkownika (uzytkownicy);
+                break;
+            case 3:
+                cout << "Zamykanie programu";
+                exit(0);
+            default:
+                cout << "Wpisano niepoprawny znak, prosze wybrac opcje" << endl;
+                Sleep (2000);
+            }
+        } else {
+            system ("cls");
+            cout << "MENU GLOWNE" << endl;
+            cout << "Zalogowano jako " << idZalogowanegoUzytkownika << endl;
+            cout << "1. Dodaj adresata" << endl;
+            cout << "2. Wyszukaj po imieniu" << endl;
+            cout << "3. Wyszukaj po nazwisku" << endl;
+            cout << "4. Wyswietl wszystkich adresatow" << endl;
+            cout << "5. Usun adresata" << endl;
+            cout << "6. Edytuj adresata" << endl;
+            cout << "7. Zmien haslo" << endl;
+            cout << "8. Wyloguj sie" << endl;
 
-        wybranaOpcjaWMenuGlownym = wczytajLiczbe ();
-
-        switch (wybranaOpcjaWMenuGlownym) {
-        case 1:
-            utworzIDodajNowegoZnajomego (znajomi);
-            break;
-        case 2:
-            szukajZnajomychPoImieniu (znajomi);
-            break;
-        case 3:
-            szukajZnajomychPoNazwisku (znajomi);
-            break;
-        case 4:
-            wyswietlWszystkichZnajomych (znajomi);
-            break;
-        case 5:
-            usunZnajomego (znajomi);
-            break;
-        case 6:
-            edytujZnajomego (znajomi);
-            break;
-        case 9:
-            cout << "Zamykanie programu";
-            exit(0);
-        default:
-            cout << "Wpisano niepoprawny znak, prosze wybrac opcje" << endl;
-            Sleep (2000);
+            wybranaOpcjaWMenuGlownym = wczytajLiczbe ();
+            switch (wybranaOpcjaWMenuGlownym) {
+            case 1:
+                utworzIDodajNowegoZnajomego (znajomi);
+                break;
+            case 2:
+                szukajZnajomychPoImieniu (znajomi);
+                break;
+            case 3:
+                szukajZnajomychPoNazwisku (znajomi);
+                break;
+            case 4:
+                wyswietlWszystkichZnajomych (znajomi);
+                break;
+            case 5:
+                usunZnajomego (znajomi);
+                break;
+            case 6:
+                edytujZnajomego (znajomi);
+                break;
+            case 7:
+                zmienHaslo (uzytkownicy, idZalogowanegoUzytkownika);
+                break;
+            case 8:
+                Sleep (200);
+                idZalogowanegoUzytkownika = 0;
+                cout << "Wylogowano" << endl;
+                Sleep (500);
+                break;
+            default:
+                cout << "Wpisano niepoprawny znak, prosze wybrac opcje" << endl;
+                Sleep (2000);
+            }
         }
     }
     return 0;
@@ -110,7 +159,6 @@ void utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi) {
 
     Sleep (200);
     cout << "Dodano znajomego!" << endl;
-
     Sleep (500);
 }
 
@@ -247,7 +295,7 @@ void wrocDoMenuGlownego () {
 void odczytajZnajomychZPliku (vector <Znajomy>& znajomi) {
     fstream plik;
     string liniaWPliku = "";
-    plik.open ("znajomi.txt", ios::in);
+    plik.open ("Adresaci.txt", ios::in);
     if (plik.good()) {
         while (getline(plik, liniaWPliku)) {
             Znajomy tymczasowy;
@@ -290,7 +338,7 @@ void odczytajZnajomychZPliku (vector <Znajomy>& znajomi) {
 
 void zapiszZnajomegoDoPliku (Znajomy znajomyDoZapisania) {
     fstream plik;
-    plik.open ("znajomi.txt", ios::out | ios::app);
+    plik.open ("Adresaci.txt", ios::out | ios::app);
     plik << znajomyDoZapisania.id << "|";
     plik << znajomyDoZapisania.imie << "|";
     plik << znajomyDoZapisania.nazwisko << "|";
@@ -304,7 +352,7 @@ void zapiszZnajomegoDoPliku (Znajomy znajomyDoZapisania) {
 void zaktualizujeZnajomychWPliku (vector <Znajomy>& znajomi) {
     int liczbaZapisanychZnajomych = znajomi.size();
     fstream plik;
-    plik.open ("znajomi.txt", ios::out);
+    plik.open ("Adresaci.txt", ios::out);
     for (int i = 0; i < liczbaZapisanychZnajomych; i++) {
         plik << znajomi[i].id << "|";
         plik << znajomi[i].imie << "|";
@@ -423,4 +471,158 @@ void edytujZnajomego (vector <Znajomy>& znajomi) {
             wypiszNaEkranBrakKontaktow ();
         }
     }
+}
+
+void odczytajUzytkownikowZPliku (vector <Uzytkownik>& uzytkownicy) {
+    fstream plik;
+    string liniaWPliku = "";
+    plik.open ("Uzytkownicy.txt", ios::in);
+    if (plik.good()) {
+        while (getline(plik, liniaWPliku)) {
+            Uzytkownik tymczasowy;
+            string idUzytkownika = "";
+            size_t rozdzielenieWyrazow = liniaWPliku.find('|');
+            size_t poprzednieRozdzielenieWyrazow = 0;
+            int numerWyrazu = 1;
+            while (numerWyrazu <= 3) {
+                switch (numerWyrazu) {
+                case 1:
+                    idUzytkownika = liniaWPliku.substr(poprzednieRozdzielenieWyrazow, rozdzielenieWyrazow);
+                    tymczasowy.idUzytkownika = atoi(liniaWPliku.c_str());
+                    break;
+                case 2:
+                    tymczasowy.loginUzytkownika = liniaWPliku.substr(poprzednieRozdzielenieWyrazow + 1, rozdzielenieWyrazow - poprzednieRozdzielenieWyrazow - 1);
+                    break;
+                case 3:
+                    tymczasowy.hasloUzytkownika = liniaWPliku.substr(poprzednieRozdzielenieWyrazow + 1, rozdzielenieWyrazow - poprzednieRozdzielenieWyrazow - 1);
+                    break;
+
+                }
+                poprzednieRozdzielenieWyrazow = rozdzielenieWyrazow;
+                rozdzielenieWyrazow = liniaWPliku.find('|', rozdzielenieWyrazow + 1);
+                numerWyrazu ++;
+            }
+            uzytkownicy.push_back(tymczasowy);
+        }
+    } else {
+        cout << "Nie udalo sie otwozyc pliku z uzytkownikami" << endl;
+    }
+}
+
+int zalogujUzytkownika (vector <Uzytkownik>& uzytkownicy) {
+    string login = "";
+    string haslo = "";
+
+    system ("cls");
+    cout << "1. Logowanie" << endl;
+
+    if (uzytkownicy.size() > 0) {
+        cout << "Wpisz login" << endl;
+        login = wczytajLinie();
+        for (int i = 0; i < uzytkownicy.size(); i++) {
+            if (uzytkownicy[i].loginUzytkownika == login) {
+                cout << "Wpisz haslo" << endl;
+                for (int proby = 0; proby < 3; proby++) {
+                    cout << "Pozostalo prob: " << 3-proby << endl;
+                    haslo = wczytajLinie();
+                    if (uzytkownicy[i].hasloUzytkownika == haslo) {
+                        Sleep (200);
+                        cout << "Zalogowano" << endl;
+                        Sleep (500);
+                        return uzytkownicy[i].idUzytkownika;
+                    }
+                }
+                Sleep (200);
+                cout << "Wpisano bledne haslo 3 razy";
+                wrocDoMenuGlownego();
+                return 0;
+            }
+        }
+        Sleep (200);
+        cout << "Nie ma takiego uzytkownika";
+        wrocDoMenuGlownego();
+        return 0;
+
+    } else {
+        Sleep (200);
+        cout << "Brak zarejestrowanych uzytkownikow";
+        wrocDoMenuGlownego();
+        return 0;
+
+    }
+}
+
+void zarejestrujUzytkownika (vector <Uzytkownik>& uzytkownicy) {
+    int liczbaUzytkownikow = uzytkownicy.size();
+    Uzytkownik tymczasowy;
+
+    system ("cls");
+    cout << "2. Rejestracja" << endl;
+    cout << "Wpisz login" << endl;
+    tymczasowy.loginUzytkownika = wczytajLinie ();
+    int licznik = 0;
+    while (licznik < liczbaUzytkownikow) {
+        if (uzytkownicy[licznik].loginUzytkownika == tymczasowy.loginUzytkownika) {
+            cout << "Taki uzytkownik juz istnieje, wpisz inny login" << endl;
+            tymczasowy.loginUzytkownika = wczytajLinie();
+            licznik = 0;
+        } else {
+            licznik++;
+        }
+    }
+
+    cout << "Wpisz haslo" << endl;
+    tymczasowy.hasloUzytkownika = wczytajLinie ();
+
+    if (liczbaUzytkownikow == 0) {
+        tymczasowy.idUzytkownika = 1;
+    } else {
+        tymczasowy.idUzytkownika = uzytkownicy[liczbaUzytkownikow - 1].idUzytkownika + 1;
+    }
+
+    uzytkownicy.push_back(tymczasowy);
+    zapiszUzytkownikaDoPliku (tymczasowy);
+
+    Sleep (200);
+    cout << "Dodano znajomego" << endl;
+    Sleep (500);
+}
+
+void zapiszUzytkownikaDoPliku (Uzytkownik uzytkownikDoZapisania) {
+    fstream plik;
+    plik.open ("Uzytkownicy.txt", ios::out | ios::app);
+    plik << uzytkownikDoZapisania.idUzytkownika << "|";
+    plik << uzytkownikDoZapisania.loginUzytkownika << "|";
+    plik << uzytkownikDoZapisania.hasloUzytkownika << "|";
+    plik << endl;
+    plik.close();
+}
+
+void zmienHaslo (vector <Uzytkownik>& uzytkownicy, int idZalogowanegoUzytkownika) {
+    system ("cls");
+    cout << "7. Zmien haslo" << endl;
+
+    for (int i = 0; i < uzytkownicy.size(); i++) {
+        if (idZalogowanegoUzytkownika == uzytkownicy[i].idUzytkownika) {
+            cout << "Wpisz nowe haslo" << endl;
+            uzytkownicy[i].hasloUzytkownika = wczytajLinie();
+        }
+    }
+    zaktualizujUzytkownikowWPliku (uzytkownicy);
+    Sleep (200);
+    cout << "Zmieniono haslo" << endl;
+    Sleep (500);
+}
+
+void zaktualizujUzytkownikowWPliku (vector <Uzytkownik>& uzytkownicy) {
+    int liczbaZapisanychUzytkownikow = uzytkownicy.size();
+    fstream plik;
+    plik.open ("Uzytkownicy.txt", ios::out);
+    for (int i = 0; i < liczbaZapisanychUzytkownikow; i++) {
+        plik << uzytkownicy[i].idUzytkownika << "|";
+        plik << uzytkownicy[i].loginUzytkownika << "|";
+        plik << uzytkownicy[i].hasloUzytkownika << "|";
+        plik << endl;
+    }
+    plik.close();
 }
