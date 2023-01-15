@@ -3,6 +3,7 @@
 #include <fstream>
 #include <vector>
 #include <sstream>
+#include <cstdio>
 
 using namespace std;
 
@@ -14,6 +15,7 @@ struct Uzytkownik {
 
 struct Znajomy {
     int id;
+    int idUzytkownika;
     string imie;
     string nazwisko;
     string telefon;
@@ -25,10 +27,10 @@ string wczytajLinie ();
 char wczytajZnak ();
 int wczytajLiczbe ();
 
-void odczytajZnajomychZPliku (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika);
-void zapiszZnajomegoDoPliku (Znajomy znajomyDoZapisania, int idZalogowanegoUzytkownika);
-void zaktualizujeZnajomychWPliku (vector <Znajomy>& znajomi);
-void utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika);
+int odczytajZnajomychZPliku (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika);
+void zapiszZnajomegoDoPliku (Znajomy znajomyDoZapisania);
+void zaktualizujZnajomegoWPliku (vector <Znajomy>& znajomi, int indeksModyfikowanegoAdresata);
+void utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika, int idOstatniegoZnajomego);
 void szukajZnajomychPoImieniu (vector <Znajomy>& znajomi);
 void szukajZnajomychPoNazwisku (vector <Znajomy>& znajomi);
 void wyswietlWszystkichZnajomych (vector <Znajomy>& znajomi);
@@ -43,15 +45,14 @@ void zapiszUzytkownikaDoPliku (Uzytkownik uzytkownikDoZapisania);
 void zarejestrujUzytkownika (vector <Uzytkownik>& uzytkownicy);
 void zmienHaslo (vector <Uzytkownik>& uzytkownicy, int idZalogowanegoUzytkownika);
 void zaktualizujUzytkownikowWPliku (vector <Uzytkownik>& uzytkownicy);
-
-
+void usunZnajomegoZPliku (vector <Znajomy>& znajomi, vector<Znajomy>::iterator itr);
 
 int main() {
     vector <Uzytkownik> uzytkownicy;
     vector <Znajomy> znajomi;
     int wybranaOpcjaWMenuGlownym = 0;
     int idZalogowanegoUzytkownika = 0;
-
+    int idOstatniegoZnajomego = 0;
 
     odczytajUzytkownikowZPliku (uzytkownicy);
 
@@ -67,7 +68,7 @@ int main() {
             switch (wybranaOpcjaWMenuGlownym) {
             case 1:
                 idZalogowanegoUzytkownika = zalogujUzytkownika (uzytkownicy);
-                odczytajZnajomychZPliku (znajomi, idZalogowanegoUzytkownika);
+                idOstatniegoZnajomego = odczytajZnajomychZPliku (znajomi, idZalogowanegoUzytkownika);
                 break;
             case 2:
                 zarejestrujUzytkownika (uzytkownicy);
@@ -82,7 +83,7 @@ int main() {
         } else {
             system ("cls");
             cout << "MENU GLOWNE" << endl;
-            cout << "Zalogowano jako " << idZalogowanegoUzytkownika << endl;
+            cout << "Zalogowano jako " << uzytkownicy[idZalogowanegoUzytkownika - 1].loginUzytkownika << endl;
             cout << "1. Dodaj adresata" << endl;
             cout << "2. Wyszukaj po imieniu" << endl;
             cout << "3. Wyszukaj po nazwisku" << endl;
@@ -95,7 +96,7 @@ int main() {
             wybranaOpcjaWMenuGlownym = wczytajLiczbe ();
             switch (wybranaOpcjaWMenuGlownym) {
             case 1:
-                utworzIDodajNowegoZnajomego (znajomi, idZalogowanegoUzytkownika);
+                utworzIDodajNowegoZnajomego (znajomi, idZalogowanegoUzytkownika, idOstatniegoZnajomego);
                 break;
             case 2:
                 szukajZnajomychPoImieniu (znajomi);
@@ -131,8 +132,7 @@ int main() {
     return 0;
 }
 
-void utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika) {
-    int liczbaZapisanychZnajomych = znajomi.size();
+void utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika, int idOstatniegoZnajomego) {
     system ("cls");
     cout << "1. Dodaj adresata" << endl;
 
@@ -149,14 +149,16 @@ void utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi, int idZalogowanegoU
     cout << "Adres: ";
     tymczasowy.adres = wczytajLinie ();
 
-    if (liczbaZapisanychZnajomych == 0) {
+    if (idOstatniegoZnajomego == 0) {
         tymczasowy.id = 1;
     } else {
-        tymczasowy.id = znajomi[liczbaZapisanychZnajomych - 1].id + 1;
+        tymczasowy.id = idOstatniegoZnajomego + 1;
     }
 
+    tymczasowy.idUzytkownika = idZalogowanegoUzytkownika;
+
     znajomi.push_back(tymczasowy);
-    zapiszZnajomegoDoPliku (tymczasowy, idZalogowanegoUzytkownika);
+    zapiszZnajomegoDoPliku (tymczasowy);
 
     Sleep (200);
     cout << "Dodano znajomego!" << endl;
@@ -179,15 +181,42 @@ void usunZnajomego (vector <Znajomy>& znajomi) {
     if (potwierdzenieUsuniecia == 't') {
         for (vector<Znajomy>::iterator itr = znajomi.begin(), koniec = znajomi.end(); itr != koniec; itr++) {
             if (itr->id == idUsuwanegoAdresata) {
+                usunZnajomegoZPliku (znajomi, itr);
                 znajomi.erase(itr);
-                zaktualizujeZnajomychWPliku (znajomi);
                 Sleep (200);
                 cout << "Usunieto znajomego!" << endl;
+                Sleep (500);
                 break;
             }
         }
     }
-    Sleep (500);
+}
+
+void usunZnajomegoZPliku (vector <Znajomy>& znajomi, vector<Znajomy>::iterator itr)
+{
+    int idUsuwanegoAdresata = itr->id;
+    fstream plik1, plik2;
+    plik1.open ("Adresaci.txt", ios::in);
+    plik2.open ("Adresaci_tymczasowy.txt", ios::out | ios::app);
+    if (plik1.good()) {
+        string liniaWPliku = "";
+        while (getline(plik1, liniaWPliku)) {
+            int id = 0;
+            size_t rozdzielenieWyrazow = liniaWPliku.find('|');
+            id = atoi(liniaWPliku.substr(0, rozdzielenieWyrazow).c_str());
+            if (id != idUsuwanegoAdresata)
+            {
+                plik2 << liniaWPliku << endl;
+            }
+        }
+    } else {
+        cout << "nie udalo sie otwozyc pliku" << endl;
+    }
+    plik1.close();
+    plik2.close();
+
+    remove("Adresaci.txt");
+    rename( "Adresaci_tymczasowy.txt", "Adresaci.txt" );
 }
 
 void szukajZnajomychPoImieniu (vector <Znajomy>& znajomi) {
@@ -293,15 +322,16 @@ void wrocDoMenuGlownego () {
     Sleep (500);
 }
 
-void odczytajZnajomychZPliku (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika) {
+int odczytajZnajomychZPliku (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika) {
     fstream plik;
-    string liniaWPliku = "";
+    Znajomy tymczasowy;
+    int idOstatniegoZnajomego = 0;
+
     plik.open ("Adresaci.txt", ios::in);
     if (plik.good()) {
+        string liniaWPliku = "";
         while (getline(plik, liniaWPliku)) {
-            Znajomy tymczasowy;
             string id = "";
-            int idUzytkownikaKtoryDodalZnajomego = 0;
             size_t rozdzielenieWyrazow = liniaWPliku.find('|');
             size_t poprzednieRozdzielenieWyrazow = 0;
             int numerWyrazu = 1;
@@ -313,7 +343,7 @@ void odczytajZnajomychZPliku (vector <Znajomy>& znajomi, int idZalogowanegoUzytk
                     break;
                 case 2:
                     id = liniaWPliku.substr(poprzednieRozdzielenieWyrazow + 1, rozdzielenieWyrazow - poprzednieRozdzielenieWyrazow - 1);
-                    idUzytkownikaKtoryDodalZnajomego = atoi(id.c_str());
+                    tymczasowy.idUzytkownika = atoi(id.c_str());
                     break;
                 case 3:
                     tymczasowy.imie = liniaWPliku.substr(poprzednieRozdzielenieWyrazow + 1, rozdzielenieWyrazow - poprzednieRozdzielenieWyrazow - 1);
@@ -335,23 +365,23 @@ void odczytajZnajomychZPliku (vector <Znajomy>& znajomi, int idZalogowanegoUzytk
                 rozdzielenieWyrazow = liniaWPliku.find('|', rozdzielenieWyrazow + 1);
                 numerWyrazu ++;
             }
-            if (idUzytkownikaKtoryDodalZnajomego == idZalogowanegoUzytkownika) {
+            if (tymczasowy.idUzytkownika == idZalogowanegoUzytkownika) {
                 znajomi.push_back(tymczasowy);
             }
         }
+        idOstatniegoZnajomego = tymczasowy.id;
     } else {
         cout << "nie udalo sie otwozyc pliku" << endl;
     }
     plik.close();
-
-    cout << "rozmiar: " << znajomi.size();
+    return idOstatniegoZnajomego;
 }
 
-void zapiszZnajomegoDoPliku (Znajomy znajomyDoZapisania, int idZalogowanegoUzytkownika) {
+void zapiszZnajomegoDoPliku (Znajomy znajomyDoZapisania) {
     fstream plik;
     plik.open ("Adresaci.txt", ios::out | ios::app);
     plik << znajomyDoZapisania.id << "|";
-    plik << idZalogowanegoUzytkownika << "|";
+    plik << znajomyDoZapisania.idUzytkownika << "|";
     plik << znajomyDoZapisania.imie << "|";
     plik << znajomyDoZapisania.nazwisko << "|";
     plik << znajomyDoZapisania.telefon << "|";
@@ -361,30 +391,51 @@ void zapiszZnajomegoDoPliku (Znajomy znajomyDoZapisania, int idZalogowanegoUzytk
     plik.close();
 }
 
-void zaktualizujeZnajomychWPliku (vector <Znajomy>& znajomi) {
-    int liczbaZapisanychZnajomych = znajomi.size();
-    fstream plik;
-    plik.open ("Adresaci.txt", ios::out);
-    for (int i = 0; i < liczbaZapisanychZnajomych; i++) {
-        plik << znajomi[i].id << "|";
-        plik << znajomi[i].imie << "|";
-        plik << znajomi[i].nazwisko << "|";
-        plik << znajomi[i].telefon << "|";
-        plik << znajomi[i].email << "|";
-        plik << znajomi[i].adres << "|";
-        plik << endl;
+void zaktualizujZnajomegoWPliku (vector <Znajomy>& znajomi, int indeksModyfikowanegoAdresata) {
+    int idModyfikowanegoAdresata = znajomi[indeksModyfikowanegoAdresata].id;
+    fstream plik1, plik2;
+    plik1.open ("Adresaci.txt", ios::in);
+    plik2.open ("Adresaci_tymczasowy.txt", ios::out | ios::app);
+    if (plik1.good()) {
+        string liniaWPliku = "";
+        while (getline(plik1, liniaWPliku)) {
+            int id = 0;
+            size_t rozdzielenieWyrazow = liniaWPliku.find('|');
+            id = atoi(liniaWPliku.substr(0, rozdzielenieWyrazow).c_str());
+            if (id != idModyfikowanegoAdresata)
+            {
+                plik2 << liniaWPliku << endl;
+            }
+            else
+            {
+                plik2 << idModyfikowanegoAdresata << "|";
+                plik2 << znajomi[indeksModyfikowanegoAdresata].idUzytkownika << "|";
+                plik2 << znajomi[indeksModyfikowanegoAdresata].imie << "|";
+                plik2 << znajomi[indeksModyfikowanegoAdresata].nazwisko << "|";
+                plik2 << znajomi[indeksModyfikowanegoAdresata].telefon << "|";
+                plik2 << znajomi[indeksModyfikowanegoAdresata].email << "|";
+                plik2 << znajomi[indeksModyfikowanegoAdresata].adres << "|";
+                plik2 << endl;
+            }
+        }
+    } else {
+        cout << "nie udalo sie otwozyc pliku" << endl;
     }
-    plik.close();
+    plik1.close();
+    plik2.close();
+
+    remove("Adresaci.txt");
+    rename( "Adresaci_tymczasowy.txt", "Adresaci.txt" );
 }
 
 void wypiszMenuZmianyDanych () {
     system ("cls");
     cout << "wybierz opcje:" << endl;
-    cout << "1 - imie" << endl;
-    cout << "2 - nazwisko" << endl;
-    cout << "3 - numer telefonu" << endl;
-    cout << "4 - adres e-mail" << endl;
-    cout << "5 - adres" << endl;
+    cout << "1 - zmien imie" << endl;
+    cout << "2 - zmien nazwisko" << endl;
+    cout << "3 - zmien numer telefonu" << endl;
+    cout << "4 - zmien adres e-mail" << endl;
+    cout << "5 - zmien adres" << endl;
     cout << "6 - powrot do menu glownego" << endl;
 }
 
@@ -476,7 +527,12 @@ void edytujZnajomego (vector <Znajomy>& znajomi) {
                     wrocDoMenuGlownego ();
                     break;
                 }
-                zaktualizujeZnajomychWPliku (znajomi);
+                zaktualizujZnajomegoWPliku (znajomi, i);
+
+                Sleep (200);
+                cout << "Zaktualizowano znajomego!" << endl;
+                Sleep (500);
+                break;
             }
         }
         if (!czyZnalezionoAdresata) {
@@ -522,6 +578,7 @@ void odczytajUzytkownikowZPliku (vector <Uzytkownik>& uzytkownicy) {
 }
 
 int zalogujUzytkownika (vector <Uzytkownik>& uzytkownicy) {
+    int liczbaZapisanychUzytkownikow = uzytkownicy.size();
     string login = "";
     string haslo = "";
 
@@ -531,7 +588,7 @@ int zalogujUzytkownika (vector <Uzytkownik>& uzytkownicy) {
     if (uzytkownicy.size() > 0) {
         cout << "Wpisz login" << endl;
         login = wczytajLinie();
-        for (int i = 0; i < uzytkownicy.size(); i++) {
+        for (int i = 0; i < liczbaZapisanychUzytkownikow; i++) {
             if (uzytkownicy[i].loginUzytkownika == login) {
                 cout << "Wpisz haslo" << endl;
                 for (int proby = 0; proby < 3; proby++) {
@@ -611,10 +668,11 @@ void zapiszUzytkownikaDoPliku (Uzytkownik uzytkownikDoZapisania) {
 }
 
 void zmienHaslo (vector <Uzytkownik>& uzytkownicy, int idZalogowanegoUzytkownika) {
+    int liczbaZapisanychUzytkownikow = uzytkownicy.size();
     system ("cls");
     cout << "7. Zmien haslo" << endl;
 
-    for (int i = 0; i < uzytkownicy.size(); i++) {
+    for (int i = 0; i < liczbaZapisanychUzytkownikow; i++) {
         if (idZalogowanegoUzytkownika == uzytkownicy[i].idUzytkownika) {
             cout << "Wpisz nowe haslo" << endl;
             uzytkownicy[i].hasloUzytkownika = wczytajLinie();
