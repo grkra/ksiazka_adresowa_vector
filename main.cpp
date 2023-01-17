@@ -30,7 +30,7 @@ int wczytajLiczbe ();
 int odczytajZnajomychZPliku (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika);
 void zapiszZnajomegoDoPliku (Znajomy znajomyDoZapisania);
 void zaktualizujZnajomegoWPliku (vector <Znajomy>& znajomi, int indeksModyfikowanegoAdresata);
-void utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika, int idOstatniegoZnajomego);
+int utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika, int idOstatniegoZnajomego);
 void szukajZnajomychPoImieniu (vector <Znajomy>& znajomi);
 void szukajZnajomychPoNazwisku (vector <Znajomy>& znajomi);
 void wyswietlWszystkichZnajomych (vector <Znajomy>& znajomi);
@@ -96,7 +96,7 @@ int main() {
             wybranaOpcjaWMenuGlownym = wczytajLiczbe ();
             switch (wybranaOpcjaWMenuGlownym) {
             case 1:
-                utworzIDodajNowegoZnajomego (znajomi, idZalogowanegoUzytkownika, idOstatniegoZnajomego);
+                idOstatniegoZnajomego = utworzIDodajNowegoZnajomego (znajomi, idZalogowanegoUzytkownika, idOstatniegoZnajomego);
                 break;
             case 2:
                 szukajZnajomychPoImieniu (znajomi);
@@ -132,7 +132,7 @@ int main() {
     return 0;
 }
 
-void utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika, int idOstatniegoZnajomego) {
+int utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi, int idZalogowanegoUzytkownika, int idOstatniegoZnajomego) {
     system ("cls");
     cout << "1. Dodaj adresata" << endl;
 
@@ -160,14 +160,20 @@ void utworzIDodajNowegoZnajomego (vector <Znajomy>& znajomi, int idZalogowanegoU
     znajomi.push_back(tymczasowy);
     zapiszZnajomegoDoPliku (tymczasowy);
 
+    idOstatniegoZnajomego = tymczasowy.id;
+
     Sleep (200);
     cout << "Dodano znajomego!" << endl;
     Sleep (500);
+
+    return idOstatniegoZnajomego;
 }
 
 void usunZnajomego (vector <Znajomy>& znajomi) {
     int idUsuwanegoAdresata = 0;
     char potwierdzenieUsuniecia;
+    int liczbaZnajomych = znajomi.size();
+    bool znalezionoIdWZnajomych = false;
 
     system ("cls");
     cout << "5. Usun adresata" << endl;
@@ -175,10 +181,27 @@ void usunZnajomego (vector <Znajomy>& znajomi) {
     cout << "Wpisz ID adresata ktorego chcesz usunac" << endl;
     idUsuwanegoAdresata = wczytajLiczbe ();
 
+    for (int i = 0; i < liczbaZnajomych; i++)
+    {
+        if (idUsuwanegoAdresata == znajomi[i].id)
+        {
+            znalezionoIdWZnajomych = true;
+            break;
+        }
+    }
+
+    if (znalezionoIdWZnajomych == false)
+    {
+        Sleep (200);
+        cout << "Nie znaleziono adresata o podanym ID" << endl;
+        wrocDoMenuGlownego ();
+        return;
+    }
+
     cout << "Potwierdz naciskajac klawisz 't'" << endl;
     potwierdzenieUsuniecia = wczytajZnak ();
 
-    if (potwierdzenieUsuniecia == 't') {
+    if (znalezionoIdWZnajomych == true && potwierdzenieUsuniecia == 't') {
         for (vector<Znajomy>::iterator itr = znajomi.begin(), koniec = znajomi.end(); itr != koniec; itr++) {
             if (itr->id == idUsuwanegoAdresata) {
                 usunZnajomegoZPliku (znajomi, itr);
@@ -448,7 +471,7 @@ string wczytajLinie () {
 
 char wczytajZnak() {
     string linia = "";
-    char znak = (0); //w nawiasie wpisuje sie liczby kodujace znaki. 0 to pusty znak
+    char znak = (0);
 
     while (1) {
         cin.sync();
